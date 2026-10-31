@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "solar-core"
+version = "1.1.0"
+description = "Pure physics engine and solar domain core for Solar-Grid AI"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pyyaml>=6.0",
+]
+
+[tool.setuptools.package-dir]
+solar_core = "."

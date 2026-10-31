@@ -1,0 +1,26 @@
+﻿# Large Datasets & Raw Files Protection
+data/raw/*
+!data/raw/.gitkeep
+*.csv
+!data/samples/*.csv
+*.zip
+*.parquet
+
+# Agent Private Auth Artifacts (Keep project skills tracked)
+.opencode/
+.agents/*
+!.agents/skills/
+
+# Python & Virtual Environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.pytest_cache/
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+snapshot.py
+STATE.md

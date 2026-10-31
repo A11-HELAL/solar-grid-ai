@@ -1,0 +1,14 @@
+README.md
+pyproject.toml
+./__init__.py
+./config.py
+./features.py
+./physics.py
+./sim.py
+./soiling.py
+./validator.py
+solar_core.egg-info/PKG-INFO
+solar_core.egg-info/SOURCES.txt
+solar_core.egg-info/dependency_links.txt
+solar_core.egg-info/requires.txt
+solar_core.egg-info/top_level.txt

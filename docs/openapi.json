@@ -1,0 +1,259 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Solar-Grid AI Analytical API",
+    "description": "Read-only and operational analytical API contracts for Solar-Grid AI v1.1",
+    "version": "1.1.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "Local development server"
+    }
+  ],
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "summary": "Health Probe",
+        "description": "Service health and database connectivity probe",
+        "responses": {
+          "200": {
+            "description": "Service is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" },
+                    "version": { "type": "string", "example": "1.1.0" }
+                  },
+                  "required": ["status", "version"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/plants": {
+      "get": {
+        "summary": "List Plants",
+        "description": "List all configured solar power plants",
+        "responses": {
+          "200": {
+            "description": "Array of plants",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "plant_id": { "type": "string" },
+                      "name": { "type": "string" },
+                      "capacity_kwp": { "type": "number" },
+                      "inverter_max_kw": { "type": "number" }
+                    },
+                    "required": ["plant_id", "name", "capacity_kwp", "inverter_max_kw"]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/plants/{id}/forecast": {
+      "get": {
+        "summary": "Get Forecast",
+        "description": "Retrieve 24-hour day-ahead power forecast",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "date", "in": "query", "required": true, "schema": { "type": "string", "format": "date" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Hourly forecast records",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "plant_id": { "type": "string" },
+                    "date": { "type": "string" },
+                    "forecast": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "hour": { "type": "integer" },
+                          "predicted_kw": { "type": "number" },
+                          "raw_model_kw": { "type": "number" },
+                          "clear_sky_kw": { "type": "number" },
+                          "guardrail_activated": { "type": "boolean" }
+                        },
+                        "required": ["hour", "predicted_kw", "clear_sky_kw"]
+                      }
+                    }
+                  },
+                  "required": ["plant_id", "date", "forecast"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/plants/{id}/measurements": {
+      "get": {
+        "summary": "Get Measurements",
+        "description": "Retrieve historical actual telemetry and quality flags",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "date", "in": "query", "required": true, "schema": { "type": "string", "format": "date" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Telemetry list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "ts_utc": { "type": "string", "format": "date-time" },
+                      "power_kw": { "type": "number" },
+                      "poa_wm2": { "type": "number" },
+                      "quality_flag": { "type": "string" }
+                    },
+                    "required": ["ts_utc", "quality_flag"]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Ingest Telemetry Batch",
+        "description": "Idempotent ingestion webhook for telemetry records",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "202": {
+            "description": "Batch accepted for processing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "records_received": { "type": "integer" }
+                  },
+                  "required": ["status", "records_received"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/plants/{id}/health": {
+      "get": {
+        "summary": "Get Plant Health",
+        "description": "Retrieve rolling performance ratio and estimated soiling loss",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "days", "in": "query", "required": false, "schema": { "type": "integer", "default": 30 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Health history records",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "date": { "type": "string", "format": "date" },
+                      "pr_tc_daily": { "type": "number" },
+                      "pr_smooth": { "type": "number" },
+                      "soiling_loss_pct": { "type": "number" },
+                      "status": { "type": "string" }
+                    },
+                    "required": ["date", "soiling_loss_pct", "status"]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/plants/{id}/alerts": {
+      "get": {
+        "summary": "Get Alerts",
+        "description": "Retrieve system and physics anomaly alerts",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "default": 20 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active and recent alerts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "integer" },
+                      "ts_utc": { "type": "string", "format": "date-time" },
+                      "severity": { "type": "string" },
+                      "rule_type": { "type": "string" },
+                      "message": { "type": "string" }
+                    },
+                    "required": ["id", "ts_utc", "severity", "rule_type", "message"]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/plants/{id}/model-health": {
+      "get": {
+        "summary": "Get Model Health",
+        "description": "Retrieve model drift indicators and guardrail activation frequencies",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "days", "in": "query", "required": false, "schema": { "type": "integer", "default": 7 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Model drift metrics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "plant_id": { "type": "string" },
+                    "intervention_rate_pct": { "type": "number" },
+                    "drift_status": { "type": "string" },
+                    "nmae_pct": { "type": "number" }
+                  },
+                  "required": ["plant_id", "intervention_rate_pct", "drift_status"]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

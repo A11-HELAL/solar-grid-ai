@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "solar-grid-ai"
+version = "1.1.0"
+description = "Solar-Grid AI v1.1 - Physics-Guided Solar Energy Forecasting & Grid Intelligence"
+requires-python = ">=3.11"
+dependencies = [
+    "solar-core",
+]
+
+[tool.setuptools.package-dir]
+solar_core = "packages/solar_core"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".", "packages/solar_core"]

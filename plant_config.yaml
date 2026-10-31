@@ -1,0 +1,23 @@
+# ==============================================================================
+# Solar-Grid AI v1.1 - Authoritative Plant Configuration (DKASC Site 14)
+# ==============================================================================
+plant:
+  id: "dka_01"
+  name: "DKA Solar Centre Site 14"
+  location:
+    lat: -23.7618
+    lon: 133.8748
+    elevation_m: 545.0
+    tz: "Australia/Darwin"
+
+array:
+  capacity_kwp: 5.4
+  inverter_ac_cap_kw: 5.0
+  tilt_deg: 20.0
+  azimuth_deg: 0.0
+
+physics:
+  gamma_per_c: -0.004
+  ref_temp_c: 25.0
+  calibration_factor: 0.92
+  night_threshold_kw: 0.1

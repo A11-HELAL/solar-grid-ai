@@ -1,0 +1,12 @@
+Metadata-Version: 2.4
+Name: solar-core
+Version: 1.1.0
+Summary: Pure physics engine and solar domain core for Solar-Grid AI
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: pyyaml>=6.0
+
+# solar-core
+
+Pure physics and domain engine for Solar-Grid AI (Room 2).
+100% pure functions: zero database drivers, zero network calls, zero system clock queries, zero pickle.
