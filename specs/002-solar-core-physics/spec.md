@@ -79,7 +79,7 @@ Quality assurance engineers and automated guards need a rigorous test suite in `
 - **Sub-horizon sun angles**: When the sun is below the horizon (zenith > 90°), calculated DNI, GHI, POA, and clear-sky power MUST be non-negative and strictly clamped to $0.0$.
 - **Extreme temperatures**: If `cell_temp_c` contains extreme values (e.g. $-40^\circ\text{C}$ or $+85^\circ\text{C}$), thermal derating must not produce negative power; power must remain bounded within $[0.0, \text{capacity\_kwp}]$.
 - **Empty DatetimeIndex**: Passing an empty `pd.DatetimeIndex` MUST return an empty `pd.Series` or `pd.DataFrame` with matching dtypes and column names, without throwing exceptions.
-- **Inverter capacity clipping**: Clear-sky AC power MUST NOT exceed `config.inverter_kw` (5.0 kW for Site 14).
+- **Inverter capacity clipping**: Clear-sky AC power MUST NOT exceed `config.inverter_ac_cap_kw` (5.0 kW for Site 14).
 
 ## Requirements *(mandatory)*
 
@@ -89,12 +89,13 @@ Quality assurance engineers and automated guards need a rigorous test suite in `
 - **FR-002**: `calculate_solar_position` MUST validate that `times` is a timezone-aware DatetimeIndex; if timezone-naive, it MUST raise a descriptive `ValueError`.
 - **FR-003**: System MUST implement `calculate_clear_sky_poa(times: pd.DatetimeIndex, config: PlantConfig) -> pd.Series` as a pure function utilizing `pvlib.clearsky.ineichen` and transposition model `pvlib.irradiance.get_total_irradiance`.
 - **FR-004**: `calculate_clear_sky_poa` MUST transpose irradiance to the plant array tilt (`config.tilt_deg = 20.0`) and azimuth (`config.azimuth_deg = 0.0` North) and strictly clamp all nighttime and negative irradiance values to $0.0$ $W/m^2$.
-- **FR-005**: System MUST implement `calculate_clear_sky_power(times: pd.DatetimeIndex, config: PlantConfig, cell_temp_c: Optional[pd.Series] = None) -> pd.Series` applying the plant capacity (`config.capacity_kwp = 5.4`), calibration factor (`config.calibration_factor = 0.92`), inverter ceiling (`config.inverter_kw = 5.0`), and cell temperature derating.
-- **FR-006**: When `cell_temp_c` is provided to `calculate_clear_sky_power`, thermal derating MUST follow $\eta_{thermal} = 1.0 + \text{config.gamma\_per\_c} \times (T_{cell} - \text{config.ref\_temp\_c})$; when omitted, $\eta_{thermal} = 1.0$.
-- **FR-007**: System MUST implement `is_night(clear_sky_power_kw: pd.Series, threshold_kw: float = 0.1) -> pd.Series` returning a boolean Series (`True` when power $< \text{threshold\_kw}$, `False` otherwise) enforcing Engineering Decision #1.
-- **FR-008**: System MUST provide a comprehensive test suite in `tests/test_physics.py` covering unit validation, property tests for MR4 (night power identically 0), and golden solstice tests for Alice Springs.
-- **FR-009**: The test suite in `tests/test_physics.py` MUST verify the June 21 (winter) and December 21 (summer) solstice diurnal curves for Alice Springs (Site 14: Lat -23.7618, Lon 133.8748), checking peak solar zenith, day length, and power bounds.
-- **FR-010**: All modules and tests MUST adhere to host hardware rules: sequential execution only, no multiprocessing pools, pure type annotations, and zero network/filesystem/`datetime.now()` calls in physics functions.
+- **FR-005**: System MUST implement `calculate_faiman_cell_temperature(poa_wm2: pd.Series, temp_air_c: pd.Series, wind_speed_ms: Optional[pd.Series] = None, u0: float = 25.0, u1: float = 6.84) -> pd.Series` using `pvlib.temperature.faiman`, defaulting missing wind to 0.0 m/s and validating physical inputs.
+- **FR-006**: System MUST implement `calculate_clear_sky_power(times: pd.DatetimeIndex, config: PlantConfig, cell_temp_c: Optional[pd.Series] = None) -> pd.Series` applying the plant capacity (`config.capacity_kwp = 5.4`), calibration factor (`config.calibration_factor = 0.92`), inverter ceiling (`config.inverter_ac_cap_kw = 5.0`), and cell temperature derating.
+- **FR-007**: When `cell_temp_c` is provided to `calculate_clear_sky_power`, thermal derating MUST follow $\eta_{thermal} = 1.0 + \text{config.gamma\_per\_c} \times (T_{cell} - \text{config.ref\_temp\_c})$; when omitted, $\eta_{thermal} = 1.0$.
+- **FR-008**: System MUST implement `is_night(clear_sky_power_kw: pd.Series, threshold_kw: float = 0.1, apparent_zenith_deg: Optional[pd.Series] = None) -> pd.Series` returning a boolean Series (`True` when power $< \text{threshold\_kw}$ or `apparent_zenith_deg >= 90.0`, `False` otherwise) enforcing Engineering Decision #1 and `config.night_threshold_kw`.
+- **FR-009**: System MUST provide a comprehensive test suite in `tests/test_physics.py` covering unit validation, property tests for MR4 (night power identically 0), and golden solstice tests for Alice Springs.
+- **FR-010**: The test suite in `tests/test_physics.py` MUST verify the June 21 (winter) and December 21 (summer) solstice diurnal curves for Alice Springs (Site 14: Lat -23.7618, Lon 133.8748), checking peak solar zenith, day length, and power bounds.
+- **FR-011**: All modules and tests MUST adhere to host hardware rules: sequential execution only, no multiprocessing pools, pure type annotations, and zero network/filesystem/`datetime.now()` calls in physics functions.
 
 ### Key Entities
 
@@ -109,7 +110,7 @@ Quality assurance engineers and automated guards need a rigorous test suite in `
 
 - **SC-001**: Execution time for calculating 1 full year of hourly solar positions and clear-sky power (8,760 timestamps) is under 250 milliseconds on dual-core Intel Core i5-7200U.
 - **SC-002**: 100% of nighttime timestamps (zenith > 90° or `is_night == True`) yield exactly $0.0$ kW clear-sky power, achieving a 100% pass rate on MR4 property tests.
-- **SC-003**: 100% pure functions: static inspection confirms zero imports of `datetime.now`, `requests`, `socket`, `sqlite3`, `psycopg2`, or filesystem write routines in `solar_core/physics.py`.
+- **SC-003**: 100% pure functions: static inspection confirms zero imports of `datetime.now`, `requests`, `socket`, `sqlite3`, `psycopg2`, or filesystem write routines in `packages/solar_core/physics.py`.
 - **SC-004**: Alice Springs June Solstice test confirms day length within $10.3 \pm 0.5$ hours and peak solar elevation within $42.7^\circ \pm 1.0^\circ$.
 - **SC-005**: Alice Springs December Solstice test confirms day length within $13.7 \pm 0.5$ hours and peak solar elevation within $89.6^\circ \pm 1.0^\circ$ (zenith $< 1.0^\circ$).
 - **SC-006**: 100% test pass rate across `tests/test_physics.py` under single-threaded sequential pytest execution.

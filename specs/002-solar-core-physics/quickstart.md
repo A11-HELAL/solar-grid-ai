@@ -1,16 +1,17 @@
 # Quickstart: Validating Pure Physics Engine & Golden Solstice Tests
 
-**Feature**: `002-solar-core-physics`
-**Date**: 2026-10-29
+**Feature**: `002-solar-core-physics`  
+**Date**: 2026-10-29 (Updated: 2026-11-18)  
+**Location**: `packages/solar_core/physics.py`
 
 ## Prerequisites
 
-- Python environment with `solar_core` installed (`pip install -e .`)
+- Python environment with `solar_core` installed (`pip install -e packages/solar_core` or `pip install -e .`)
 - Working directory: `e:\Graduation Project\files`
 
 ---
 
-## 1. Quick Solar Position & Clear-Sky Calculation
+## 1. Quick Solar Position, Clear-Sky & Faiman Calculation
 
 Run a quick interactive Python check:
 
@@ -18,22 +19,34 @@ Run a quick interactive Python check:
 python -c "
 import pandas as pd
 from solar_core.config import PlantConfig
-from solar_core.physics import calculate_solar_position, calculate_clear_sky_poa, calculate_clear_sky_power, is_night
+from solar_core.physics import (
+    calculate_solar_position,
+    calculate_clear_sky_poa,
+    calculate_faiman_cell_temperature,
+    calculate_clear_sky_power,
+    is_night,
+)
 
 config = PlantConfig()
 times = pd.date_range('2026-06-21 00:00', '2026-06-21 23:00', freq='1h', tz='UTC')
 
 sol_pos = calculate_solar_position(times, config)
 poa = calculate_clear_sky_poa(times, config)
-power = calculate_clear_sky_power(times, config)
-night = is_night(power)
+temp_ambient = pd.Series(20.0, index=times)
+wind = pd.Series(2.5, index=times)
+cell_temp = calculate_faiman_cell_temperature(poa, temp_ambient, wind)
+power = calculate_clear_sky_power(times, config, cell_temp_c=cell_temp)
+night = is_night(power, threshold_kw=config.night_threshold_kw, apparent_zenith_deg=sol_pos['apparent_zenith'])
 
 print('Noon apparent zenith:', sol_pos['apparent_zenith'].min())
 print('Max POA irradiance:', poa.max(), 'W/m^2')
+print('Max Cell Temperature:', cell_temp.max(), 'deg C')
 print('Max Clear-Sky Power:', power.max(), 'kW')
 print('Daytime hours count:', (~night).sum())
+
 assert power.max() > 0.0
-assert (power[night] == 0.0).all() or (power[night] < 0.1).all()
+assert power.max() <= config.inverter_ac_cap_kw
+assert (power[night] == 0.0).all()
 "
 ```
 
